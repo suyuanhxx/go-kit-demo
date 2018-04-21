@@ -18,14 +18,13 @@ import (
 	"github.com/go-kit/kit/sd"
 	"github.com/go-kit/kit/sd/lb"
 	httptransport "github.com/go-kit/kit/transport/http"
-	"errors"
 )
 
 func proxyingMiddleware(ctx context.Context, instances string, logger log.Logger) ServiceMiddleware {
 	// If instances is empty, don't proxy.
 	if instances == "" {
 		logger.Log("proxy_to", "none")
-		return func(next StringService) StringService { return next }
+		return func(next UserService) UserService { return next }
 	}
 
 	// Set some parameters for our client.
@@ -46,7 +45,7 @@ func proxyingMiddleware(ctx context.Context, instances string, logger log.Logger
 	logger.Log("proxy_to", fmt.Sprint(instanceList))
 	for _, instance := range instanceList {
 		var e endpoint.Endpoint
-		e = makeUppercaseProxy(ctx, instance)
+		e = makeGetUserByUserName(ctx, instance)
 		e = circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{}))(e)
 		e = ratelimit.NewErroringLimiter(rate.NewLimiter(rate.Every(time.Second), qps))(e)
 		endpointer = append(endpointer, e)
@@ -58,39 +57,35 @@ func proxyingMiddleware(ctx context.Context, instances string, logger log.Logger
 	retry := lb.Retry(maxAttempts, maxTime, balancer)
 
 	// And finally, return the ServiceMiddleware, implemented by proxymw.
-	return func(next StringService) StringService {
+	return func(next UserService) UserService {
 		return proxymw{ctx, next, retry}
 	}
 }
 
-// proxymw implements StringService, forwarding Uppercase requests to the
 // provided endpoint, and serving all other (i.e. Count) requests via the
-// next StringService.
+// next UserService.
 type proxymw struct {
-	ctx       context.Context
-	next      StringService     // Serve most requests via this service...
-	uppercase endpoint.Endpoint // ...except Uppercase, which gets served by this endpoint
+	ctx               context.Context
+	next              UserService       // Serve most requests via this service...
+	getUserByUserName endpoint.Endpoint // ...except Uppercase, which gets served by this endpoint
 }
 
-func (mw proxymw) Count(s string) int {
-	return mw.next.Count(s)
+func (mw proxymw) GetUserByUserName(s string) string {
+	return mw.next.GetUserByUserName(s)
+	//response, err := mw.getUserByUserName(mw.ctx, getUserByUserNameRequest{S: s})
+	//if err != nil {
+	//	return ""
+	//}
+	//fmt.Println(response)
+	//
+	//res, ok := response.([]byte)
+	//if !ok {
+	//	return "response error"
+	//}
+	//return string(res)
 }
 
-func (mw proxymw) Uppercase(s string) (string, error) {
-	response, err := mw.uppercase(mw.ctx, uppercaseRequest{S: s})
-	if err != nil {
-		return "", err
-	}
-
-	resp := response.(uppercaseResponse)
-	if resp.Err != "" {
-		return resp.V, errors.New(resp.Err)
-	}
-	return resp.V, nil
-	//return mw.next.Uppercase(s)
-}
-
-func makeUppercaseProxy(ctx context.Context, instance string) endpoint.Endpoint {
+func makeGetUserByUserName(ctx context.Context, instance string) endpoint.Endpoint {
 	if !strings.HasPrefix(instance, "http") {
 		instance = "http://" + instance
 	}
@@ -105,7 +100,7 @@ func makeUppercaseProxy(ctx context.Context, instance string) endpoint.Endpoint 
 		"GET",
 		u,
 		encodeRequest,
-		decodeUppercaseResponse,
+		decodeGetUserByUserNameResponse,
 	).Endpoint()
 }
 

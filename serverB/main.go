@@ -29,7 +29,8 @@ func main() {
 	// on, but we do it here for demonstration purposes.
 	fs := flag.NewFlagSet("addsvc", flag.ExitOnError)
 	var (
-		grpcAddr = fs.String("grpc-addr", ":8082", "gRPC listen address")
+		grpcAddr    = fs.String("grpc-addr", ":8082", "gRPC listen address")
+		jsonRPCAddr = fs.String("jsonrpc-addr", ":8084", "JSON RPC listen address")
 	)
 	fs.Usage = usageFor(fs, os.Args[0]+" [flags]")
 	fs.Parse(os.Args[1:])
@@ -79,9 +80,10 @@ func main() {
 	// the interfaces that the transports expect. Note that we're not binding
 	// them to ports or anything yet; we'll do that next.
 	var (
-		service    = addservice.New(logger, ints, chars)
-		endpoints  = addendpoint.New(service, logger, duration, nil, nil)
-		grpcServer = addtransport.NewGRPCServer(endpoints, nil, nil, logger)
+		service        = addservice.New(logger, ints, chars)
+		endpoints      = addendpoint.New(service, logger, duration, nil, nil)
+		grpcServer     = addtransport.NewGRPCServer(endpoints, nil, nil, logger)
+		jsonrpcHandler = addtransport.NewJSONRPCHandler(endpoints, logger)
 	)
 
 	// Now we're to the part of the func main where we want to start actually
@@ -113,6 +115,20 @@ func main() {
 			return baseServer.Serve(grpcListener)
 		}, func(error) {
 			grpcListener.Close()
+		})
+	}
+
+	{
+		httpListener, err := net.Listen("tcp", *jsonRPCAddr)
+		if err != nil {
+			logger.Log("transport", "JSONRPC over HTTP", "during", "Listen", "err", err)
+			os.Exit(1)
+		}
+		g.Add(func() error {
+			logger.Log("transport", "JSONRPC over HTTP", "addr", *jsonRPCAddr)
+			return http.Serve(httpListener, jsonrpcHandler)
+		}, func(error) {
+			httpListener.Close()
 		})
 	}
 

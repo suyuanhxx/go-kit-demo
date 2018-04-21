@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"strings"
+	"fmt"
 )
 
 // StringService provides operations on strings.
@@ -17,6 +18,7 @@ func (stringService) Uppercase(s string) (string, error) {
 	if s == "" {
 		return "", ErrEmpty
 	}
+	fmt.Println("param is", s)
 	return strings.ToUpper(s), nil
 }
 
