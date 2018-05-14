@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package proto;
 
-// protobuffer four ways
+// protobuffer four pattern
 service UserService {
     rpc GetUserInfo  (UserRequest) returns (UserResponse) {}
     rpc GetUserInfo2 (UserRequest) returns (stream UserResponse) {}

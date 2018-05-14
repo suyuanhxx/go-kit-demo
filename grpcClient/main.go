@@ -50,7 +50,6 @@ func main() {
 	// three
 	// 向服务端发送流数据
 	s1, err := grpcClient.GetUserInfo3(context.Background())
-
 	// 模拟的数据库中有 3 条记录，ID 分别为 1 2 3
 	for i := 1; i < 4; i++ {
 		err := s1.Send(&pb.UserRequest{Id: int32(i)})
