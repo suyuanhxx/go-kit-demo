@@ -59,7 +59,7 @@ func New(svc addservice.Service, logger log.Logger, duration metrics.Histogram, 
 }
 
 // Sum implements the service interface, so Set may be used as a service.
-// This is primarily useful in the context of a client library.
+// This is primarily useful in the context of a grpcClient library.
 func (s Set) Sum(ctx context.Context, a, b int) (int, error) {
 	resp, err := s.SumEndpoint(ctx, SumRequest{A: a, B: b})
 	if err != nil {
@@ -70,7 +70,7 @@ func (s Set) Sum(ctx context.Context, a, b int) (int, error) {
 }
 
 // Concat implements the service interface, so Set may be used as a
-// service. This is primarily useful in the context of a client library.
+// service. This is primarily useful in the context of a grpcClient library.
 func (s Set) Concat(ctx context.Context, a, b string) (string, error) {
 	resp, err := s.ConcatEndpoint(ctx, ConcatRequest{A: a, B: b})
 	if err != nil {

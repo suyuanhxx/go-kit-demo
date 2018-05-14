@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package proto;
+
+// protobuffer four ways
+service UserService {
+    rpc GetUserInfo  (UserRequest) returns (UserResponse) {}
+    rpc GetUserInfo2 (UserRequest) returns (stream UserResponse) {}
+    rpc GetUserInfo3 (stream UserRequest) returns (UserResponse) {}
+    rpc GetUserInfo4 (stream UserRequest) returns (stream UserResponse) {}
+}
+
+message UserRequest {
+    int32 id = 1;
+    string userName = 2;
+}
+
+message UserResponse {
+    int32 id = 1;
+    string userName = 2;
+    int32 age = 3;
+    int32 sex = 4;
+}

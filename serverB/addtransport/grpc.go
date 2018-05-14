@@ -85,33 +85,33 @@ func (s *grpcServer) Concat(ctx oldcontext.Context, req *pb.ConcatRequest) (*pb.
 // NewGRPCClient returns an AddService backed by a gRPC server at the other end
 // of the conn. The caller is responsible for constructing the conn, and
 // eventually closing the underlying transport. We bake-in certain middlewares,
-// implementing the client library pattern.
+// implementing the grpcClient library pattern.
 func NewGRPCClient(conn *grpc.ClientConn, otTracer stdopentracing.Tracer, zipkinTracer *stdzipkin.Tracer, logger log.Logger) addservice.Service {
 	// We construct a single ratelimiter middleware, to limit the total outgoing
-	// QPS from this client to all methods on the remote instance. We also
+	// QPS from this grpcClient to all methods on the remote instance. We also
 	// construct per-endpoint circuitbreaker middlewares to demonstrate how
 	// that's done, although they could easily be combined into a single breaker
 	// for the entire remote instance, too.
 	limiter := ratelimit.NewErroringLimiter(rate.NewLimiter(rate.Every(time.Second), 100))
 
 	// Zipkin GRPC Client Trace can either be instantiated per gRPC method with a
-	// provided operation name or a global tracing client can be instantiated
-	// without an operation name and fed to each Go kit client as ClientOption.
+	// provided operation name or a global tracing grpcClient can be instantiated
+	// without an operation name and fed to each Go kit grpcClient as ClientOption.
 	// In the latter case, the operation name will be the endpoint's grpc method
 	// path.
 	//
-	// In this example, we demonstrace a global tracing client.
+	// In this example, we demonstrace a global tracing grpcClient.
 	zipkinClient := zipkin.GRPCClientTrace(zipkinTracer)
 
-	// global client middlewares
+	// global grpcClient middlewares
 	options := []grpctransport.ClientOption{
 		zipkinClient,
 	}
 
 	// Each individual endpoint is an http/transport.Client (which implements
 	// endpoint.Endpoint) that gets wrapped with various middlewares. If you
-	// made your own client library, you'd do this work there, so your server
-	// could rely on a consistent set of client behavior.
+	// made your own grpcClient library, you'd do this work there, so your server
+	// could rely on a consistent set of grpcClient behavior.
 	var sumEndpoint endpoint.Endpoint
 	{
 		sumEndpoint = grpctransport.NewClient(
@@ -177,7 +177,7 @@ func decodeGRPCConcatRequest(_ context.Context, grpcReq interface{}) (interface{
 }
 
 // decodeGRPCSumResponse is a transport/grpc.DecodeResponseFunc that converts a
-// gRPC sum reply to a user-domain sum response. Primarily useful in a client.
+// gRPC sum reply to a user-domain sum response. Primarily useful in a grpcClient.
 func decodeGRPCSumResponse(_ context.Context, grpcReply interface{}) (interface{}, error) {
 	reply := grpcReply.(*pb.SumReply)
 	return addendpoint.SumResponse{V: int(reply.V), Err: str2err(reply.Err)}, nil
@@ -185,7 +185,7 @@ func decodeGRPCSumResponse(_ context.Context, grpcReply interface{}) (interface{
 
 // decodeGRPCConcatResponse is a transport/grpc.DecodeResponseFunc that converts
 // a gRPC concat reply to a user-domain concat response. Primarily useful in a
-// client.
+// grpcClient.
 func decodeGRPCConcatResponse(_ context.Context, grpcReply interface{}) (interface{}, error) {
 	reply := grpcReply.(*pb.ConcatReply)
 	return addendpoint.ConcatResponse{V: reply.V, Err: str2err(reply.Err)}, nil
@@ -207,7 +207,7 @@ func encodeGRPCConcatResponse(_ context.Context, response interface{}) (interfac
 }
 
 // encodeGRPCSumRequest is a transport/grpc.EncodeRequestFunc that converts a
-// user-domain sum request to a gRPC sum request. Primarily useful in a client.
+// user-domain sum request to a gRPC sum request. Primarily useful in a grpcClient.
 func encodeGRPCSumRequest(_ context.Context, request interface{}) (interface{}, error) {
 	req := request.(addendpoint.SumRequest)
 	return &pb.SumRequest{A: int64(req.A), B: int64(req.B)}, nil
@@ -215,7 +215,7 @@ func encodeGRPCSumRequest(_ context.Context, request interface{}) (interface{}, 
 
 // encodeGRPCConcatRequest is a transport/grpc.EncodeRequestFunc that converts a
 // user-domain concat request to a gRPC concat request. Primarily useful in a
-// client.
+// grpcClient.
 func encodeGRPCConcatRequest(_ context.Context, request interface{}) (interface{}, error) {
 	req := request.(addendpoint.ConcatRequest)
 	return &pb.ConcatRequest{A: req.A, B: req.B}, nil

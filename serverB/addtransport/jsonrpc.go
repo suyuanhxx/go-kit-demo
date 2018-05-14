@@ -37,7 +37,7 @@ func NewJSONRPCHandler(endpoints addendpoint.Set, logger log.Logger) *jsonrpc.Se
 // NewJSONRPCClient returns an addservice backed by a JSON RPC over HTTP server
 // living at the remote instance. We expect instance to come from a service
 // discovery system, so likely of the form "host:port". We bake-in certain
-// middlewares, implementing the client library pattern.
+// middlewares, implementing the grpcClient library pattern.
 func NewJSONRPCClient(instance string, tracer stdopentracing.Tracer, logger log.Logger) (addservice.Service, error) {
 	// Quickly sanitize the instance string.
 	if !strings.HasPrefix(instance, "http") {
@@ -49,7 +49,7 @@ func NewJSONRPCClient(instance string, tracer stdopentracing.Tracer, logger log.
 	}
 
 	// We construct a single ratelimiter middleware, to limit the total outgoing
-	// QPS from this client to all methods on the remote instance. We also
+	// QPS from this grpcClient to all methods on the remote instance. We also
 	// construct per-endpoint circuitbreaker middlewares to demonstrate how
 	// that's done, although they could easily be combined into a single breaker
 	// for the entire remote instance, too.

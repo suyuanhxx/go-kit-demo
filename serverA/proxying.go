@@ -28,7 +28,7 @@ func proxyingMiddleware(ctx context.Context, instances string, logger log.Logger
 		return func(next StringService) StringService { return next }
 	}
 
-	// Set some parameters for our client.
+	// Set some parameters for our grpcClient.
 	var (
 		qps         = 100                    // beyond which we will return an error
 		maxAttempts = 3                      // per request, before giving up
